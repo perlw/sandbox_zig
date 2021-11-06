@@ -1,4 +1,9 @@
+const builtin = @import("builtin");
 const std = @import("std");
+
+const TargetError = error{
+    UnsupportedTarget,
+};
 
 pub fn build(b: *std.build.Builder) void {
     // Standard target options allows the person running `zig build` to choose
@@ -14,8 +19,18 @@ pub fn build(b: *std.build.Builder) void {
     const exe = b.addExecutable("ziggers", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
-    exe.linkSystemLibrary("c");
-    exe.linkSystemLibrary("user32");
+    switch (builtin.os.tag) {
+        .windows => {
+            exe.linkSystemLibrary("c");
+            exe.linkSystemLibrary("user32");
+        },
+
+        .linux => {},
+
+        else => {
+            @compileError("Unknown OS target for build");
+        },
+    }
     exe.install();
 
     const run_cmd = exe.run();
