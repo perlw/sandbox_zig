@@ -16,21 +16,27 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
-    const exe = b.addExecutable("ziggers", "src/main.zig");
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
+    var exe: *std.build.LibExeObjStep = undefined;
     switch (builtin.os.tag) {
         .windows => {
+            exe = b.addExecutable("ziggers", "src/win32_main.zig");
             exe.linkSystemLibrary("c");
             exe.linkSystemLibrary("user32");
         },
 
-        .linux => {},
+        .linux => {
+            exe = b.addExecutable("ziggers", "src/linux_main.zig");
+            exe.linkSystemLibrary("c");
+            exe.linkSystemLibrary("xcb");
+            exe.linkSystemLibrary("xcb-errors");
+        },
 
         else => {
             @compileError("Unknown OS target for build");
         },
     }
+    exe.setTarget(target);
+    exe.setBuildMode(mode);
     exe.install();
 
     const run_cmd = exe.run();
