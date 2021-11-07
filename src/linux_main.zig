@@ -51,7 +51,7 @@ pub fn main() !void {
                     var minor = c.xcb_errors_get_name_for_minor_code(errCtx, err.*.major_code, err.*.minor_code);
                     var extension: ?*u8 = null;
                     var errMsg = c.xcb_errors_get_name_for_error(errCtx, err.*.error_code, &extension);
-                    std.log.err("XCB Error: .{s}:.{s}, .{s}:.{s}, resource .{} sequence .{}", .{ errMsg, extension, major, minor, err.*.resource_id, err.*.sequence });
+                    std.log.err("XCB Error: {s}:{s}, {s}:{s}, resource {} sequence {}", .{ errMsg, extension, major, minor, err.*.resource_id, err.*.sequence });
                 },
 
                 c.XCB_EXPOSE => {

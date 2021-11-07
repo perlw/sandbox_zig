@@ -53,7 +53,8 @@ pub fn main() !void {
         .right = 1280,
         .bottom = 720,
     };
-    c.AdjustWindowRect(&wSize, c.WS_OVERLAPPEDWINDOW, c.FALSE);
+    _ = c.AdjustWindowRect(&wSize, c.WS_OVERLAPPEDWINDOW, c.FALSE);
+    std.log.debug("Adjusted window size to {}x{}", .{wSize.right-wSize.left,wSize.bottom-wSize.top});
 
     const window = c.CreateWindowExA(
         0,
@@ -62,8 +63,8 @@ pub fn main() !void {
         c.WS_OVERLAPPEDWINDOW | c.WS_VISIBLE,
         c.CW_USEDEFAULT,
         c.CW_USEDEFAULT,
-        1280,
-        720,
+        wSize.right-wSize.left,
+        wSize.bottom-wSize.top,
         null,
         null,
         hInstance,
