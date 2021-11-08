@@ -1,10 +1,6 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const TargetError = error{
-    UnsupportedTarget,
-};
-
 pub fn build(b: *std.build.Builder) void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
@@ -19,13 +15,13 @@ pub fn build(b: *std.build.Builder) void {
     var exe: *std.build.LibExeObjStep = undefined;
     switch (builtin.os.tag) {
         .windows => {
-            exe = b.addExecutable("ziggers", "src/win32_main.zig");
+            exe = b.addExecutable("platform_win32", "src/platform/win32_platform.zig");
             exe.linkSystemLibrary("c");
             exe.linkSystemLibrary("user32");
         },
 
         .linux => {
-            exe = b.addExecutable("ziggers", "src/linux_main.zig");
+            exe = b.addExecutable("platform_linux", "src/platform/linux_platform.zig");
             exe.linkSystemLibrary("c");
             exe.linkSystemLibrary("xcb");
             exe.linkSystemLibrary("xcb-errors");

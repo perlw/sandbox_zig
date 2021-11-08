@@ -28,6 +28,8 @@ export fn WindowProc(window: c.HWND, message: c.UINT, wParam: c.WPARAM, lParam: 
     };
 }
 
+const windowClassName = "zigwin32platform";
+
 pub fn main() !void {
     const hInstance = c.GetModuleHandleA(undefined);
 
@@ -41,7 +43,7 @@ pub fn main() !void {
         .hCursor = c.LoadCursorA(hInstance, c.IDC_ARROW),
         .hbrBackground = 0,
         .lpszMenuName = 0,
-        .lpszClassName = "ziggerswin32platform",
+        .lpszClassName = windowClassName,
     };
     if (c.RegisterClassA(&windowClass) == 0) {
         c.OutputDebugStringA("could not register class\n");
@@ -54,17 +56,17 @@ pub fn main() !void {
         .bottom = 720,
     };
     _ = c.AdjustWindowRect(&wSize, c.WS_OVERLAPPEDWINDOW, c.FALSE);
-    std.log.debug("Adjusted window size to {}x{}", .{wSize.right-wSize.left,wSize.bottom-wSize.top});
+    std.log.debug("Adjusted window size to {}x{}", .{ wSize.right - wSize.left, wSize.bottom - wSize.top });
 
     const window = c.CreateWindowExA(
         0,
-        "ziggerswin32platform",
+        windowClassName,
         "zig-lang hello winapi",
         c.WS_OVERLAPPEDWINDOW | c.WS_VISIBLE,
         c.CW_USEDEFAULT,
         c.CW_USEDEFAULT,
-        wSize.right-wSize.left,
-        wSize.bottom-wSize.top,
+        wSize.right - wSize.left,
+        wSize.bottom - wSize.top,
         null,
         null,
         hInstance,
