@@ -18,6 +18,8 @@ pub fn build(b: *std.build.Builder) void {
             exe = b.addExecutable("platform_win32", "src/platform/win32_platform.zig");
             exe.linkSystemLibrary("c");
             exe.linkSystemLibrary("user32");
+            exe.linkSystemLibrary("kernel32");
+            exe.linkSystemLibrary("gdi32");
         },
 
         .linux => {
