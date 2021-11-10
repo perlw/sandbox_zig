@@ -78,6 +78,45 @@ pub fn main() !void {
 
     std.log.info("All your codebase are belong to us.", .{});
 
+    const win32 = std.os.windows;
+    const wsa = win32.ws2_32;
+    const wsaData = try win32.WSAStartup(2, 2);
+    defer win32.WSACleanup() catch unreachable;
+
+    var addrInfo: *wsa.addrinfo = undefined;
+    var hints = std.mem.zeroInit(wsa.addrinfo, .{
+        .family = wsa.AF_INET,
+        .socktype = wsa.SOCK_DGRAM,
+        .protocol = wsa.IPPROTO_UDP,
+    });
+
+    switch (wsa.getaddrinfo("192.168.1.83", "13337", &hints, &addrInfo)) {
+        0 => {},
+        else => |err_int| switch (@intToEnum(wsa.WinsockError, @intCast(u16, err_int))) {
+            else => |err| return win32.unexpectedWSAError(err),
+        },
+    }
+    defer wsa.freeaddrinfo(addrInfo);
+
+    std.log.debug("addrinfo {}", .{addrInfo});
+    var socket: wsa.SOCKET = wsa.INVALID_SOCKET;
+    socket = wsa.socket(addrInfo.*.family, addrInfo.*.socktype, addrInfo.*.protocol);
+    if (socket == wsa.INVALID_SOCKET) {
+        std.log.err("INVALID_SOCKET", .{});
+        return;
+    }
+    defer _ = wsa.closesocket(socket);
+    if (wsa.connect(socket, addrInfo.*.addr.?, @intCast(i32, addrInfo.*.addrlen)) == wsa.SOCKET_ERROR) {
+        std.log.err("SOCKET_ERROR", .{});
+        return;
+    }
+    defer _ = wsa.shutdown(socket, wsa.SD_RECEIVE);
+
+    var buffer: [512]u8 = undefined;
+    var readNum = wsa.recv(socket, &buffer, buffer.len, 0);
+    std.log.debug("got data! {} bytes", .{readNum});
+    std.log.debug("data: {any}", .{buffer});
+
     while (globalIsRunning) {
         var message: c.MSG = undefined;
         while (c.PeekMessageA(&message, window, 0, 0, c.PM_REMOVE) != 0) {
