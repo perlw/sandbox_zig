@@ -89,6 +89,7 @@ pub fn main() !void {
         .socktype = wsa.SOCK_DGRAM,
         .protocol = wsa.IPPROTO_UDP,
     });
+    std.log.debug("hints {}", .{hints});
 
     switch (wsa.getaddrinfo("192.168.1.83", "13337", &hints, &addrInfo)) {
         0 => {},
@@ -106,16 +107,18 @@ pub fn main() !void {
         return;
     }
     defer _ = wsa.closesocket(socket);
-    if (wsa.connect(socket, addrInfo.*.addr.?, @intCast(i32, addrInfo.*.addrlen)) == wsa.SOCKET_ERROR) {
+    if (wsa.bind(socket, addrInfo.*.addr.?, @intCast(i32, addrInfo.*.addrlen)) == wsa.SOCKET_ERROR) {
         std.log.err("SOCKET_ERROR", .{});
         return;
     }
     defer _ = wsa.shutdown(socket, wsa.SD_RECEIVE);
 
+    // while (true) {
     var buffer: [512]u8 = undefined;
     var readNum = wsa.recv(socket, &buffer, buffer.len, 0);
     std.log.debug("got data! {} bytes", .{readNum});
-    std.log.debug("data: {any}", .{buffer});
+    std.log.debug("data: {any}", .{buffer[0..@intCast(usize, readNum)]});
+    // }
 
     while (globalIsRunning) {
         var message: c.MSG = undefined;
