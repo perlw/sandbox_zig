@@ -8,6 +8,8 @@ const c = @cImport({
     @cInclude("windows.h");
 });
 
+const forzaprotocol = @import("forzaprotocol");
+
 var globalIsRunning = true;
 
 export fn WindowProc(window: c.HWND, message: c.UINT, wParam: c.WPARAM, lParam: c.LPARAM) c.LRESULT {
@@ -113,12 +115,16 @@ pub fn main() !void {
     }
     defer _ = wsa.shutdown(socket, wsa.SD_RECEIVE);
 
-    // while (true) {
     var buffer: [512]u8 = undefined;
-    var readNum = wsa.recv(socket, &buffer, buffer.len, 0);
-    std.log.debug("got data! {} bytes", .{readNum});
-    std.log.debug("data: {any}", .{buffer[0..@intCast(usize, readNum)]});
-    // }
+    while (true) {
+        var readNum = wsa.recv(socket, &buffer, buffer.len, 0);
+        //std.log.debug("got data! {} bytes", .{readNum});
+        //std.log.debug("data: {any}", .{buffer[0..@intCast(usize, readNum)]});
+
+        const p = @ptrCast(*forzaprotocol.Packet, &buffer);
+        // std.log.debug("cast: {}", .{p});
+        std.log.debug("rpm: {}", .{@floatToInt(i32, p.*.CurrentEngineRpm)});
+    }
 
     while (globalIsRunning) {
         var message: c.MSG = undefined;
