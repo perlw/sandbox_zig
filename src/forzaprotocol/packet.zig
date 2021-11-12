@@ -1,88 +1,88 @@
 pub const Packet = packed struct {
-    Running: i32, // 0 in menus, 1 when not.
-    Timestamp: u32,
-    EngineMaxRpm: f32,
-    EngineIdleRpm: f32,
-    CurrentEngineRpm: f32,
-    AccelerationX: f32,
-    AccelerationY: f32,
-    AccelerationZ: f32,
-    VelocityX: f32,
-    VelocityY: f32,
-    VelocityZ: f32,
-    AngularVelocityX: f32,
-    AngularVelocityY: f32,
-    AngularVelocityZ: f32,
-    Yaw: f32,
-    Pitch: f32,
-    Roll: f32,
-    NormalizedSuspensionFrontLeft: f32, // 0.0 - relaxed, 1.0 - compressed.
-    NormalizedSuspensionFrontRight: f32,
-    NormalizedSuspensionRearLeft: f32,
-    NormalizedSuspensionRearRight: f32,
-    TireSlipRatioFrontLeft: f32, // 0.0 - max grip, 1.0+ - no grip.
-    TireSlipRatioFrontRight: f32,
-    TireSlipRatioRearLeft: f32,
-    TireSlipRatioRearRight: f32,
-    WheelRotationSpeedFrontLeft: f32, // Radians p/sec.
-    WheelRotationSpeedFrontRight: f32,
-    WheelRotationSpeedRearLeft: f32,
-    WheelRotationSpeedRearRight: f32,
-    WheelOnRumbleStripFrontLeft: i32, // 0 when not on rumble strip, 1 when on.
-    WheelOnRumbleStripFrontRight: i32,
-    WheelOnRumbleStripRearLeft: i32,
-    WheelOnRumbleStripRearRight: i32,
-    WheelInPuddleDepthFrontLeft: f32, // 0.0 - no puddle, 1.0 - deep puddle.
-    WheelInPuddleDepthFrontRight: f32,
-    WheelInPuddleDepthRearLeft: f32,
-    WheelInPuddleDepthRearRight: f32,
-    SurfaceRumbleFrontLeft: f32,
-    SurfaceRumbleFrontRight: f32,
-    SurfaceRumbleRearLeft: f32,
-    SurfaceRumbleRearRight: f32,
-    TireSlipAngleFrontLeft: f32, // 0.0 - max grip, 1.0+ - no grip.
-    TireSlipAngleFrontRight: f32,
-    TireSlipAngleRearLeft: f32,
-    TireSlipAngleRearRight: f32,
-    TireCombinedSlipFrontLeft: f32, // 0.0 - max grip, 1.0+ - no grip.
-    TireCombinedSlipFrontRight: f32,
-    TireCombinedSlipRearLeft: f32,
-    TireCombinedSlipRearRight: f32,
-    SuspensionTravelMetersFrontLeft: f32,
-    SuspensionTravelMetersFrontRight: f32,
-    SuspensionTravelMetersRearLeft: f32,
-    SuspensionTravelMetersRearRight: f32,
-    CarID: i32,
-    CarClass: i32, // 0: D, 1: C, 2: B, 3: A, 4: S1, 5: S2, 6: R, 7: X.
-    CarPerformanceIndex: i32,
-    Drivetrain: i32, // 0: FWD, 1: RWD, 2: AWD.
-    NumCylinders: i32,
-    Unknown: [12]u8,
-    PositionX: f32, // Meters.
-    PositionY: f32, // Meters.
-    PositionZ: f32, // Meters.
-    Speed: f32, // Meters per second.
-    Power: f32, // Watts.
-    Torque: f32, // Newtonmeter.
-    TireTempFrontLeft: f32,
-    TireTempFrontRight: f32,
-    TireTempRearLeft: f32,
-    TireTempRearRight: f32,
-    Boost: f32,
-    Fuel: f32,
-    DistanceTraveled: f32,
-    BestLap: f32,
-    LastLap: f32,
-    CurrentLap: f32,
-    CurrentRaceTime: f32,
-    LapNumber: u16,
-    RacePosition: u8,
-    Accel: u8,
-    Brake: u8,
-    Clutch: u8,
-    Handbrake: u8,
-    Gear: u8,
-    Steer: i8,
-    NormalizedDrivingLine: i8,
-    NormalizedAIBrakeDifference: i8,
+    running: i32, // 0 in menus, 1 when not.
+    timestamp: u32,
+    engine_max_rpm: f32,
+    engine_idle_rpm: f32,
+    current_engine_rpm: f32,
+    acceleration_x: f32,
+    acceleration_y: f32,
+    acceleration_z: f32,
+    velocity_x: f32,
+    velocity_y: f32,
+    velocity_z: f32,
+    angular_velocity_x: f32,
+    angular_velocity_y: f32,
+    angular_velocity_z: f32,
+    yaw: f32,
+    pitch: f32,
+    roll: f32,
+    normalized_suspension_front_left: f32, // 0.0 - relaxed, 1.0 - compressed.
+    normalized_suspension_front_right: f32,
+    normalized_suspension_rear_left: f32,
+    normalized_suspension_rear_right: f32,
+    tire_slip_ratio_front_left: f32, // 0.0 - max grip, 1.0+ - no grip.
+    tire_slip_ratio_front_right: f32,
+    tire_slip_ratio_rear_left: f32,
+    tire_slip_ratio_rear_right: f32,
+    wheel_rotation_speed_front_left: f32, // radians p/sec.
+    wheel_rotation_speed_front_right: f32,
+    wheel_rotation_speed_rear_left: f32,
+    wheel_rotation_speed_rear_right: f32,
+    wheel_on_rumble_strip_front_left: i32, // 0 when not on rumble strip, 1 when on.
+    wheel_on_rumble_strip_front_right: i32,
+    wheel_on_rumble_strip_rear_left: i32,
+    wheel_on_rumble_strip_rear_right: i32,
+    wheel_in_puddle_depth_front_left: f32, // 0.0 - no puddle, 1.0 - deep puddle.
+    wheel_in_puddle_depth_front_right: f32,
+    wheel_in_puddle_depth_rear_left: f32,
+    wheel_in_puddle_depth_rear_right: f32,
+    surface_rumble_front_left: f32,
+    surface_rumble_front_right: f32,
+    surface_rumble_rear_left: f32,
+    surface_rumble_rear_right: f32,
+    tire_slip_angle_front_left: f32, // 0.0 - max grip, 1.0+ - no grip.
+    tire_slip_angle_front_right: f32,
+    tire_slip_angle_rear_left: f32,
+    tire_slip_angle_rear_right: f32,
+    tire_combined_slip_front_left: f32, // 0.0 - max grip, 1.0+ - no grip.
+    tire_combined_slip_front_right: f32,
+    tire_combined_slip_rear_left: f32,
+    tire_combined_slip_rear_right: f32,
+    suspension_travel_meters_front_left: f32,
+    suspension_travel_meters_front_right: f32,
+    suspension_travel_meters_rear_left: f32,
+    suspension_travel_meters_rear_right: f32,
+    car_id: i32,
+    car_class: i32, // 0: d, 1: c, 2: b, 3: a, 4: s1, 5: s2, 6: r, 7: x.
+    car_performance_index: i32,
+    drivetrain: i32, // 0: fwd, 1: rwd, 2: awd.
+    num_cylinders: i32,
+    unknown: [12]u8,
+    position_x: f32, // meters.
+    position_y: f32, // meters.
+    position_z: f32, // meters.
+    speed: f32, // meters per second.
+    power: f32, // watts.
+    torque: f32, // newtonmeter.
+    tire_temp_front_left: f32,
+    tire_temp_front_right: f32,
+    tire_temp_rear_left: f32,
+    tire_temp_rear_right: f32,
+    boost: f32,
+    fuel: f32,
+    distance_traveled: f32,
+    best_lap: f32,
+    last_lap: f32,
+    current_lap: f32,
+    current_race_time: f32,
+    lap_number: u16,
+    race_position: u8,
+    accel: u8,
+    brake: u8,
+    clutch: u8,
+    handbrake: u8,
+    gear: u8,
+    steer: i8,
+    normalized_driving_line: i8,
+    normalized_ai_brake_difference: i8,
 };
