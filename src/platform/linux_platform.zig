@@ -37,7 +37,7 @@ pub fn main() !void {
 
     std.log.info("All your codebase are belong to us.", .{});
 
-    while (globalIsRunning) {
+    while (global_is_running) {
         var e = c.xcb_poll_for_event(connection);
         while (e != null) : (e = c.xcb_poll_for_event(connection)) {
             switch (e.*.response_type & ~@intCast(u8, 0x80)) {
@@ -47,10 +47,10 @@ pub fn main() !void {
                     _ = c.xcb_errors_context_new(connection, &err_ctx);
                     defer c.xcb_errors_context_free(err_ctx);
 
-                    var major = c.xcb_errors_get_name_for_major_code(err_ctx, err.*.major_code);
-                    var minor = c.xcb_errors_get_name_for_minor_code(err_ctx, err.*.major_code, err.*.minor_code);
+                    const major = c.xcb_errors_get_name_for_major_code(err_ctx, err.*.major_code);
+                    const minor = c.xcb_errors_get_name_for_minor_code(err_ctx, err.*.major_code, err.*.minor_code);
                     var extension: ?*u8 = null;
-                    var err_msg = c.xcb_errors_get_name_for_error(err_ctx, err.*.error_code, &extension);
+                    const err_msg = c.xcb_errors_get_name_for_error(err_ctx, err.*.error_code, &extension);
                     std.log.err("XCB Error: {s}:{s}, {s}:{s}, resource {} sequence {}", .{ err_msg, extension, major, minor, err.*.resource_id, err.*.sequence });
                 },
 
@@ -69,7 +69,7 @@ pub fn main() !void {
                     std.log.debug("XCB_CLIENT_MESSAGE", .{});
                     const evt = @ptrCast(*c.xcb_client_message_event_t, e);
                     if (evt.*.data.data32[0] == delete_window_reply.*.atom) {
-                        globalIsRunning = false;
+                        global_is_running = false;
                     }
                 },
 
