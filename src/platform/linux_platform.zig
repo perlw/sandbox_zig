@@ -1,21 +1,94 @@
 const std = @import("std");
 
 const c = @cImport({
+    @cInclude("xcb/shm.h");
     @cInclude("xcb/xcb.h");
     @cInclude("xcb/xcb_errors.h");
     @cInclude("malloc.h");
+    @cInclude("sys/shm.h");
 });
 
 var global_is_running = true;
 
+const Backbuffer = struct {
+    connection: *c.xcb_connection_t,
+    window: c.xcb_drawable_t,
+
+    shmID: c_int = 0,
+    shmSeg: c.xcb_shm_seg_t,
+    pixmapID: c.xcb_pixmap_t,
+
+    memory: *anyopaque = undefined, // Always 32-bit, memory order: XX RR GG BB | 03 02 01 00
+    width: u32 = 0,
+    height: u32 = 0,
+    bps: u32 = 0,
+    pitch: u32 = 0,
+
+    pub fn init(connection: *c.xcb_connection_t, window: c.xcb_drawable_t, width: u32, height: u32) Backbuffer {
+        var self = Backbuffer{
+            .connection = connection,
+            .window = window,
+            .shmSeg = c.xcb_generate_id(connection),
+            .pixmapID = c.xcb_generate_id(connection),
+        };
+
+        self.resizeBackbuffer(width, height);
+
+        std.log.debug("{}", .{self});
+
+        return self;
+    }
+
+    pub fn deinit(self: *Backbuffer) void {
+        _ = c.xcb_shm_detach(self.connection, self.shmSeg);
+        _ = c.shmctl(self.shmID, c.IPC_RMID, 0);
+        _ = c.shmdt(self.memory);
+        _ = c.xcb_free_pixmap(self.connection, self.pixmapID);
+    }
+
+    pub fn resizeBackbuffer(self: *Backbuffer, width: u32, height: u32) void {
+        if (self.shmID != 0) {
+            _ = c.xcb_shm_detach(self.connection, self.shmSeg);
+            _ = c.shmctl(self.shmID, c.IPC_RMID, 0);
+            _ = c.shmdt(self.memory);
+            _ = c.xcb_free_pixmap(self.connection, self.pixmapID);
+        }
+        _ = c.xcb_flush(self.connection);
+
+        self.width = width;
+        self.height = height;
+        self.bps = 4;
+        self.pitch = self.width * self.height;
+
+        self.shmID = c.shmget(c.IPC_PRIVATE, self.bps * (width * height), c.IPC_CREAT | 0o600);
+        self.memory = c.shmat(self.shmID, null, 0).?;
+
+        _ = c.xcb_shm_attach(self.connection, self.shmSeg, @intCast(c_uint, self.shmID), 0);
+        const screen = c.xcb_setup_roots_iterator(c.xcb_get_setup(self.connection)).data;
+        _ = c.xcb_shm_create_pixmap(
+            self.connection,
+            self.pixmapID,
+            self.window,
+            @intCast(u16, self.width),
+            @intCast(u16, self.height),
+            screen.*.root_depth,
+            self.shmSeg,
+            0,
+        );
+
+        // Necessary?
+        _ = c.xcb_flush(self.connection);
+    }
+};
+
 pub fn main() !void {
-    var connection = c.xcb_connect(null, null);
+    const connection = c.xcb_connect(null, null);
     if (connection == null) {
         std.log.err("could not grab xcb connection", .{});
         std.os.exit(1);
     }
     defer c.xcb_disconnect(connection);
-    var screen = c.xcb_setup_roots_iterator(c.xcb_get_setup(connection)).data;
+    const screen = c.xcb_setup_roots_iterator(c.xcb_get_setup(connection)).data;
 
     var mask: u32 = 0;
     var values: [2]u32 = undefined;
@@ -23,8 +96,25 @@ pub fn main() !void {
     const window = c.xcb_generate_id(connection);
     mask = c.XCB_CW_EVENT_MASK;
     values[0] = c.XCB_EVENT_MASK_EXPOSURE | c.XCB_EVENT_MASK_KEY_PRESS | c.XCB_EVENT_MASK_KEY_RELEASE;
-    _ = c.xcb_create_window(connection, c.XCB_COPY_FROM_PARENT, window, screen.*.root, 0, 0, 1280, 720, 10, c.XCB_WINDOW_CLASS_INPUT_OUTPUT, screen.*.root_visual, mask, &values);
+    _ = c.xcb_create_window(
+        connection,
+        c.XCB_COPY_FROM_PARENT,
+        window,
+        screen.*.root,
+        0,
+        0,
+        1280,
+        720,
+        10,
+        c.XCB_WINDOW_CLASS_INPUT_OUTPUT,
+        screen.*.root_visual,
+        mask,
+        &values,
+    );
     defer _ = c.xcb_destroy_window(connection, window);
+
+    const gcontext = c.xcb_generate_id(connection);
+    _ = c.xcb_create_gc(connection, gcontext, window, 0, null);
 
     // NOTE: Make sure we get the close window event (when letting decorations close the window etc).
     const protocol_reply = c.xcb_intern_atom_reply(connection, c.xcb_intern_atom(connection, 1, 12, "WM_PROTOCOLS"), 0);
@@ -35,8 +125,21 @@ pub fn main() !void {
     _ = c.xcb_map_window(connection, window);
     _ = c.xcb_flush(connection);
 
+    // NOTE: SHM Support.
+    const reply = c.xcb_shm_query_version_reply(connection, c.xcb_shm_query_version(connection), null);
+    if (reply == null or reply.*.shared_pixmaps == 0) {
+        std.log.err("Shm error...", .{});
+        return;
+    }
+
+    var backbuffer = Backbuffer.init(connection.?, window, 1280, 720);
+    defer backbuffer.deinit();
+
+    const shmCompletionEvent = c.xcb_get_extension_data(connection, &c.xcb_shm_id).*.first_event + c.XCB_SHM_COMPLETION;
+
     std.log.info("All your codebase are belong to us.", .{});
 
+    var readyToBlit = true;
     while (global_is_running) {
         var e = c.xcb_poll_for_event(connection);
         while (e != null) : (e = c.xcb_poll_for_event(connection)) {
@@ -76,8 +179,51 @@ pub fn main() !void {
                 else => {},
             }
 
+            if (shmCompletionEvent == (e.*.response_type & ~@intCast(u8, 0x80))) {
+                readyToBlit = true;
+            }
+
             c.free(e);
         }
-        _ = c.xcb_flush(connection);
+
+        if (readyToBlit) {
+            readyToBlit = false;
+
+            var memory = @ptrCast([*]u8, backbuffer.memory)[0..(backbuffer.bps * backbuffer.pitch)];
+            var y: u32 = 0;
+            while (y < backbuffer.height) : (y += 1) {
+                var x: u32 = 0;
+                while (x < backbuffer.width) : (x += 1) {
+                    const i = ((y * backbuffer.width) + x) * backbuffer.bps;
+
+                    const col = @intCast(u8, (x ^ y) % 256);
+                    memory[i + 0] = col;
+                    memory[i + 1] = col;
+                    memory[i + 2] = col;
+                    memory[i + 3] = 255;
+                }
+            }
+
+            _ = c.xcb_shm_put_image(
+                connection,
+                window,
+                gcontext,
+                @intCast(u16, backbuffer.width), // src_x
+                @intCast(u16, backbuffer.height), // src_y
+                0, // dest_x
+                0, // dest_y
+                @intCast(u16, backbuffer.width), // src_width
+                @intCast(u16, backbuffer.height), // src_height
+                0,
+                0,
+                screen.*.root_depth,
+                c.XCB_IMAGE_FORMAT_Z_PIXMAP,
+                1,
+                backbuffer.shmSeg,
+                0,
+            );
+
+            _ = c.xcb_flush(connection);
+        }
     }
 }

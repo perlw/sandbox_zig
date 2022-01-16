@@ -26,6 +26,7 @@ pub fn build(b: *std.build.Builder) void {
             exe = b.addExecutable("platform_linux", "src/platform/linux_platform.zig");
             exe.linkSystemLibrary("c");
             exe.linkSystemLibrary("xcb");
+            exe.linkSystemLibrary("xcb-shm");
             exe.linkSystemLibrary("xcb-errors");
         },
 
