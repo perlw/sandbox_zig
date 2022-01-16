@@ -39,6 +39,8 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.addPackagePath("forzaprotocol", "src/forzaprotocol/index.zig");
+    exe.addPackagePath("game/bitmap", "src/bitmap.zig");
+    exe.addPackagePath("game/app", "src/app.zig");
     exe.install();
 
     const run_cmd = exe.run();

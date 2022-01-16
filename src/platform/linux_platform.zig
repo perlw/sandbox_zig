@@ -1,5 +1,3 @@
-const std = @import("std");
-
 const c = @cImport({
     @cInclude("xcb/shm.h");
     @cInclude("xcb/xcb.h");
@@ -13,6 +11,11 @@ const c = @cImport({
     @cInclude("X11/XKBlib.h");
     @cInclude("X11/keysymdef.h");
 });
+
+const std = @import("std");
+
+const Bitmap = @import("game/bitmap").Bitmap;
+const Application = @import("game/app").Application;
 
 var global_is_running = true;
 
@@ -148,7 +151,9 @@ pub fn main() !void {
 
     std.log.info("All your codebase are belong to us.", .{});
 
-    var offset: u32 = 0;
+    var app = Application.init();
+    defer app.deinit();
+
     var readyToBlit = true;
     while (global_is_running) {
         var e = c.xcb_poll_for_event(connection);
@@ -209,21 +214,13 @@ pub fn main() !void {
         if (readyToBlit) {
             readyToBlit = false;
 
-            var memory = @ptrCast([*]u8, backbuffer.memory)[0..(backbuffer.bps * backbuffer.pitch)];
-            var y: u32 = 0;
-            while (y < backbuffer.height) : (y += 1) {
-                var x: u32 = 0;
-                while (x < backbuffer.width) : (x += 1) {
-                    const i = ((y * backbuffer.width) + x) * backbuffer.bps;
-
-                    const col = @intCast(u8, ((x + offset) ^ (y + offset)) % 256);
-                    memory[i + 0] = col;
-                    memory[i + 1] = col;
-                    memory[i + 2] = col;
-                    memory[i + 3] = 255;
-                }
-            }
-            offset += 1;
+            var memory = @ptrCast([*c]u32, @alignCast(@alignOf(*u32), backbuffer.memory))[0..backbuffer.pitch];
+            var screenBuffer = Bitmap{
+                .memory = memory,
+                .width = backbuffer.width,
+                .height = backbuffer.height,
+            };
+            app.updateAndRender(&screenBuffer);
 
             _ = c.xcb_shm_put_image(
                 connection,
