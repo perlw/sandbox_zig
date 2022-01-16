@@ -6,6 +6,12 @@ const c = @cImport({
     @cInclude("xcb/xcb_errors.h");
     @cInclude("malloc.h");
     @cInclude("sys/shm.h");
+
+    @cDefine("XK_MISCELLANY", "1");
+    @cDefine("XK_LATIN1", "1");
+    @cInclude("xcb/xcb_keysyms.h");
+    @cInclude("X11/XKBlib.h");
+    @cInclude("X11/keysymdef.h");
 });
 
 var global_is_running = true;
@@ -137,8 +143,12 @@ pub fn main() !void {
 
     const shmCompletionEvent = c.xcb_get_extension_data(connection, &c.xcb_shm_id).*.first_event + c.XCB_SHM_COMPLETION;
 
+    const keySyms = c.xcb_key_symbols_alloc(connection);
+    defer c.xcb_key_symbols_free(keySyms);
+
     std.log.info("All your codebase are belong to us.", .{});
 
+    var offset: u32 = 0;
     var readyToBlit = true;
     while (global_is_running) {
         var e = c.xcb_poll_for_event(connection);
@@ -163,9 +173,19 @@ pub fn main() !void {
 
                 c.XCB_KEY_PRESS, c.XCB_KEY_RELEASE => {
                     std.log.debug("XCB_KEY_PRESS/RELEASE", .{});
+                    if (e.*.response_type == c.XCB_KEY_PRESS) {
+                        const evt = @ptrCast(*c.xcb_key_press_event_t, e);
+                        const keySym = c.xcb_key_press_lookup_keysym(keySyms, evt, 0);
+                        std.log.debug("DOWN {}?={}", .{ keySym, c.XK_Escape });
+                    } else if (e.*.response_type == c.XCB_KEY_RELEASE) {
+                        const evt = @ptrCast(*c.xcb_key_press_event_t, e);
+                        const keySym = c.xcb_key_press_lookup_keysym(keySyms, evt, 0);
+                        std.log.debug("UP {}?={}", .{ keySym, c.XK_Escape });
 
-                    // if (e.*.response_type == c.XCB_KEY_PRESS) {
-                    //}
+                        if (keySym == c.XK_Escape) {
+                            global_is_running = false;
+                        }
+                    }
                 },
 
                 c.XCB_CLIENT_MESSAGE => {
@@ -196,13 +216,14 @@ pub fn main() !void {
                 while (x < backbuffer.width) : (x += 1) {
                     const i = ((y * backbuffer.width) + x) * backbuffer.bps;
 
-                    const col = @intCast(u8, (x ^ y) % 256);
+                    const col = @intCast(u8, ((x + offset) ^ (y + offset)) % 256);
                     memory[i + 0] = col;
                     memory[i + 1] = col;
                     memory[i + 2] = col;
                     memory[i + 3] = 255;
                 }
             }
+            offset += 1;
 
             _ = c.xcb_shm_put_image(
                 connection,

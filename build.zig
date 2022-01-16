@@ -27,7 +27,9 @@ pub fn build(b: *std.build.Builder) void {
             exe.linkSystemLibrary("c");
             exe.linkSystemLibrary("xcb");
             exe.linkSystemLibrary("xcb-shm");
+            exe.linkSystemLibrary("xcb-keysyms");
             exe.linkSystemLibrary("xcb-errors");
+            exe.linkSystemLibrary("X11");
         },
 
         else => {
