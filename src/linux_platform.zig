@@ -14,8 +14,9 @@ const c = @cImport({
 
 const std = @import("std");
 
-const Bitmap = @import("game/bitmap").Bitmap;
-const Application = @import("game/app").Application;
+const graphics = @import("game/graphics");
+const Bitmap = graphics.bitmap.Bitmap;
+const Application = @import("./game.zig").Application;
 
 var global_is_running = true;
 
@@ -84,9 +85,6 @@ const Backbuffer = struct {
             self.shmSeg,
             0,
         );
-
-        // Necessary?
-        _ = c.xcb_flush(self.connection);
     }
 };
 
@@ -154,6 +152,7 @@ pub fn main() !void {
     var app = Application.init();
     defer app.deinit();
 
+    var hitF1 = false;
     var readyToBlit = true;
     while (global_is_running) {
         var e = c.xcb_poll_for_event(connection);
@@ -181,14 +180,16 @@ pub fn main() !void {
                     if (e.*.response_type == c.XCB_KEY_PRESS) {
                         const evt = @ptrCast(*c.xcb_key_press_event_t, e);
                         const keySym = c.xcb_key_press_lookup_keysym(keySyms, evt, 0);
-                        std.log.debug("DOWN {}?={}", .{ keySym, c.XK_Escape });
+                        std.log.debug("DOWN {}?={} or {}", .{ keySym, c.XK_Escape, c.XK_F1 });
                     } else if (e.*.response_type == c.XCB_KEY_RELEASE) {
                         const evt = @ptrCast(*c.xcb_key_press_event_t, e);
                         const keySym = c.xcb_key_press_lookup_keysym(keySyms, evt, 0);
-                        std.log.debug("UP {}?={}", .{ keySym, c.XK_Escape });
+                        std.log.debug("UP {}?={} or {}", .{ keySym, c.XK_Escape, c.XK_F1 });
 
                         if (keySym == c.XK_Escape) {
                             global_is_running = false;
+                        } else if (keySym == c.XK_F1) {
+                            hitF1 = true;
                         }
                     }
                 },
@@ -220,7 +221,8 @@ pub fn main() !void {
                 .width = backbuffer.width,
                 .height = backbuffer.height,
             };
-            app.updateAndRender(&screenBuffer);
+            app.updateAndRender(&screenBuffer, hitF1);
+            hitF1 = false;
 
             _ = c.xcb_shm_put_image(
                 connection,

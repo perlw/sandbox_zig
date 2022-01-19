@@ -15,7 +15,7 @@ pub fn build(b: *std.build.Builder) void {
     var exe: *std.build.LibExeObjStep = undefined;
     switch (builtin.os.tag) {
         .windows => {
-            exe = b.addExecutable("platform_win32", "src/platform/win32_platform.zig");
+            exe = b.addExecutable("platform_win32", "src/win32_platform.zig");
             exe.linkSystemLibrary("c");
             exe.linkSystemLibrary("user32");
             exe.linkSystemLibrary("kernel32");
@@ -23,7 +23,7 @@ pub fn build(b: *std.build.Builder) void {
         },
 
         .linux => {
-            exe = b.addExecutable("platform_linux", "src/platform/linux_platform.zig");
+            exe = b.addExecutable("platform_linux", "src/linux_platform.zig");
             exe.linkSystemLibrary("c");
             exe.linkSystemLibrary("xcb");
             exe.linkSystemLibrary("xcb-shm");
@@ -38,9 +38,8 @@ pub fn build(b: *std.build.Builder) void {
     }
     exe.setTarget(target);
     exe.setBuildMode(mode);
-    exe.addPackagePath("forzaprotocol", "src/forzaprotocol/index.zig");
-    exe.addPackagePath("game/bitmap", "src/bitmap.zig");
-    exe.addPackagePath("game/app", "src/app.zig");
+    exe.addPackagePath("game/forzaprotocol", "src/forzaprotocol/index.zig");
+    exe.addPackagePath("game/graphics", "src/graphics/index.zig");
     exe.install();
 
     const run_cmd = exe.run();

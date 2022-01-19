@@ -8,7 +8,7 @@ const c = @cImport({
     @cInclude("windows.h");
 });
 
-const forzaprotocol = @import("forzaprotocol");
+const forzaprotocol = @import("game/forzaprotocol");
 
 var global_is_running = true;
 
@@ -84,6 +84,7 @@ pub fn main() !void {
     const wsa = win32.ws2_32;
     const wsa_data = try win32.WSAStartup(2, 2);
     defer win32.WSACleanup() catch unreachable;
+    _ = wsa_data;
 
     var addrinfo: *wsa.addrinfo = undefined;
     var hints = std.mem.zeroInit(wsa.addrinfo, .{
@@ -118,6 +119,7 @@ pub fn main() !void {
     var buffer: [512]u8 = undefined;
     while (true) {
         var read_num = wsa.recv(socket, &buffer, buffer.len, 0);
+        _ = read_num;
         //std.log.debug("got data! {} bytes", .{read_num});
         //std.log.debug("data: {any}", .{buffer[0..@intCast(usize, read_num)]});
 
