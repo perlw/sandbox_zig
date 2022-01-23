@@ -70,7 +70,7 @@ const Backbuffer = struct {
         self.bps = 4;
         self.pitch = self.width * self.height;
 
-        self.shmID = c.shmget(c.IPC_PRIVATE, self.bps * (width * height), c.IPC_CREAT | 0o600);
+        self.shmID = c.shmget(c.IPC_PRIVATE, self.bps * self.pitch, c.IPC_CREAT | 0o600);
         self.memory = c.shmat(self.shmID, null, 0).?;
 
         _ = c.xcb_shm_attach(self.connection, self.shmSeg, @intCast(c_uint, self.shmID), 0);
