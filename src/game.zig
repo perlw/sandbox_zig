@@ -9,15 +9,31 @@ const Effect = enum(u32) {
 };
 
 pub const Application = struct {
+    allocator: std.mem.Allocator,
+
     timestep: u32 = 0,
     effectNum: u32 = 0,
     xorOffset: u32 = 0,
     palette: [768]u8 = [_]u8{0} ** (256 * 3),
     colors: u8 = 255,
+    plasmaBitmap: Bitmap = undefined,
+    palettedPlasma: [1280 * 720]u8 = undefined,
 
-    pub fn init() Application {
-        var self = Application{};
+    pub fn init() !Application {
+        var self = Application{
+            .allocator = std.heap.c_allocator,
+        };
 
+        try self.setUpPlasma();
+
+        return self;
+    }
+
+    pub fn deinit(self: *Application) void {
+        self.plasmaBitmap.deinit();
+    }
+
+    fn setUpPlasma(self: *Application) !void {
         {
             var i: u32 = 0;
             while (i < 256) : (i += 1) {
@@ -28,15 +44,27 @@ pub const Application = struct {
             }
         }
 
-        return self;
-    }
+        self.plasmaBitmap = try Bitmap.init(self.allocator, 1280, 720);
 
-    pub fn deinit(self: *Application) void {
-        _ = self;
+        var y: u32 = 0;
+        while (y < self.plasmaBitmap.height) : (y += 1) {
+            var x: u32 = 0;
+            while (x < self.plasmaBitmap.width) : (x += 1) {
+                const i = (y * self.plasmaBitmap.width) + x;
+
+                const fx = @intToFloat(f32, x);
+                const fy = @intToFloat(f32, y);
+                const palIndex = ((@floatToInt(u8, @mod((128.0 + (128.0 * @sin(fx / 32.0))) + (128.0 + (128.0 * @sin(fy / 32.0))) / 2.0, 256.0)) + self.timestep) % 256) % self.colors;
+
+                const color = self.palette[palIndex * 3 .. (palIndex * 3) + 3];
+                self.plasmaBitmap.memory[i] = (0xff << 24) + (@intCast(u32, color[0]) << 16) + (@intCast(u32, color[1]) << 8) + @intCast(u32, color[2]);
+                self.palettedPlasma[i] = @intCast(u8, palIndex);
+            }
+        }
     }
 
     pub fn drawXor(self: *Application, screenBuffer: *Bitmap) void {
-        self.xorOffset += 4;
+        self.xorOffset += 2;
 
         var y: u32 = 0;
         while (y < screenBuffer.height) : (y += 1) {
@@ -44,8 +72,8 @@ pub const Application = struct {
             while (x < screenBuffer.width) : (x += 1) {
                 const i = (y * screenBuffer.width) + x;
 
-                const col = ((x + self.xorOffset) ^ (y + self.xorOffset)) % 256;
-                screenBuffer.memory[i] = (0xff << 24) + (col << 16) + (col << 8) + col;
+                const color = ((x + self.xorOffset) ^ (y + self.xorOffset)) % 256;
+                screenBuffer.memory[i] = (0xff << 24) + (color << 16) + (color << 8) + color;
             }
         }
     }
@@ -57,11 +85,9 @@ pub const Application = struct {
             while (x < screenBuffer.width) : (x += 1) {
                 const i = (y * screenBuffer.width) + x;
 
-                const fx = @intToFloat(f32, x);
-                const fy = @intToFloat(f32, y);
-
-                const palIndex = ((@floatToInt(u8, @mod((128.0 + (128.0 * @sin(fx / 32.0))) + (128.0 + (128.0 * @sin(fy / 32.0))) / 2.0, 256.0)) + self.timestep) % 256) % self.colors;
+                const palIndex = @intCast(u32, self.palettedPlasma[i]);
                 const color = self.palette[palIndex * 3 .. (palIndex * 3) + 3];
+                self.palettedPlasma[i] = (self.palettedPlasma[i] + 1) % 255;
 
                 screenBuffer.memory[i] = (0xff << 24) + (@intCast(u32, color[0]) << 16) + (@intCast(u32, color[1]) << 8) + @intCast(u32, color[2]);
             }

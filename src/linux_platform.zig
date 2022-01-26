@@ -160,7 +160,7 @@ pub fn main() !void {
 
     std.log.info("All your codebase are belong to us.", .{});
 
-    var app = Application.init();
+    var app = try Application.init();
     defer app.deinit();
 
     const gameUpdateHz: f32 = 30.0;

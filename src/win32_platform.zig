@@ -188,7 +188,7 @@ pub fn main() !void {
     var backbuffer = Backbuffer.init(1280, 720);
     defer backbuffer.deinit();
 
-    var app = Application.init();
+    var app = try Application.init();
     defer app.deinit();
 
     var hitF1 = false;
