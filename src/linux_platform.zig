@@ -1,4 +1,5 @@
 const c = @cImport({
+    @cInclude("unistd.h");
     @cInclude("xcb/shm.h");
     @cInclude("xcb/xcb.h");
     @cInclude("xcb/xcb_errors.h");
@@ -88,6 +89,16 @@ const Backbuffer = struct {
     }
 };
 
+inline fn getClockValue() c.timespec {
+    var tv: c.timespec = undefined;
+    _ = c.clock_gettime(c.CLOCK_MONOTONIC_RAW, &tv);
+    return tv;
+}
+
+inline fn getSecondsElapsed(start: c.timespec, end: c.timespec) f32 {
+    return @intToFloat(f32, (end.tv_sec - start.tv_sec)) + (@intToFloat(f32, end.tv_nsec - start.tv_nsec) / 1000000000.0);
+}
+
 pub fn main() !void {
     const connection = c.xcb_connect(null, null);
     if (connection == null) {
@@ -152,6 +163,10 @@ pub fn main() !void {
     var app = Application.init();
     defer app.deinit();
 
+    const gameUpdateHz: f32 = 30.0;
+    const targetSecondsPerFrame: f32 = 1.0 / gameUpdateHz;
+    var lastCounter = getClockValue();
+
     var hitF1 = false;
     var readyToBlit = true;
     while (global_is_running) {
@@ -212,17 +227,29 @@ pub fn main() !void {
             c.free(e);
         }
 
+        const secondsElapsedPerFrame = getSecondsElapsed(lastCounter, getClockValue());
+        if (secondsElapsedPerFrame < targetSecondsPerFrame) {
+            const sleepMics = @floatToInt(c_uint, 1000000.0 * (targetSecondsPerFrame - secondsElapsedPerFrame));
+            if (sleepMics > 0) {
+                _ = c.usleep(sleepMics);
+            }
+        }
+        const endCounter = getClockValue();
+        const msPerFrame = 1000.0 * getSecondsElapsed(lastCounter, endCounter);
+        lastCounter = endCounter;
+
+        // TODO: Do this outside.
+        var memory = @ptrCast([*c]u32, @alignCast(@alignOf(*u32), backbuffer.memory))[0..backbuffer.pitch];
+        var screenBuffer = Bitmap{
+            .memory = memory,
+            .width = backbuffer.width,
+            .height = backbuffer.height,
+        };
+        app.updateAndRender(&screenBuffer, hitF1, msPerFrame);
+        hitF1 = false;
+
         if (readyToBlit) {
             readyToBlit = false;
-
-            var memory = @ptrCast([*c]u32, @alignCast(@alignOf(*u32), backbuffer.memory))[0..backbuffer.pitch];
-            var screenBuffer = Bitmap{
-                .memory = memory,
-                .width = backbuffer.width,
-                .height = backbuffer.height,
-            };
-            app.updateAndRender(&screenBuffer, hitF1);
-            hitF1 = false;
 
             _ = c.xcb_shm_put_image(
                 connection,

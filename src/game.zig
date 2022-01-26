@@ -11,6 +11,7 @@ const Effect = enum(u32) {
 pub const Application = struct {
     timestep: u32 = 0,
     effectNum: u32 = 0,
+    xorOffset: u32 = 0,
     palette: [768]u8 = [_]u8{0} ** (256 * 3),
     colors: u8 = 255,
 
@@ -35,13 +36,15 @@ pub const Application = struct {
     }
 
     pub fn drawXor(self: *Application, screenBuffer: *Bitmap) void {
+        self.xorOffset += 4;
+
         var y: u32 = 0;
         while (y < screenBuffer.height) : (y += 1) {
             var x: u32 = 0;
             while (x < screenBuffer.width) : (x += 1) {
                 const i = (y * screenBuffer.width) + x;
 
-                const col = ((x + self.timestep) ^ (y + self.timestep)) % 256;
+                const col = ((x + self.xorOffset) ^ (y + self.xorOffset)) % 256;
                 screenBuffer.memory[i] = (0xff << 24) + (col << 16) + (col << 8) + col;
             }
         }
@@ -65,7 +68,9 @@ pub const Application = struct {
         }
     }
 
-    pub fn updateAndRender(self: *Application, screenBuffer: *Bitmap, toggled: bool) void {
+    pub fn updateAndRender(self: *Application, screenBuffer: *Bitmap, toggled: bool, msPerFrame: f32) void {
+        _ = msPerFrame;
+
         if (toggled) {
             self.effectNum = if (self.effectNum < 1) self.effectNum + 1 else 0;
             std.log.info("Set effect to: {}", .{@intToEnum(Effect, self.effectNum)});
